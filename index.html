@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Couple Budget" />
+  <meta name="theme-color" content="#0f1117" />
+  <title>Couple Budget</title>
+
+  <!-- PWA Icons (inline SVG as data URIs for zero-dependency hosting) -->
+  <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='40' fill='%230f1117'/%3E%3Ctext x='90' y='120' font-size='90' text-anchor='middle' fill='%236c63ff'%3E💶%3C/text%3E%3C/svg%3E" />
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&display=swap');
+
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #22263a;
+      --border: rgba(255,255,255,0.08);
+      --text: #f0f2f8;
+      --muted: #8b90a8;
+      --accent: #6c63ff;
+      --accent2: #ff6b9d;
+      --green: #2dd4a0;
+      --amber: #f5a623;
+      --red: #ff6b6b;
+      --blue: #4da6ff;
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', system-ui, sans-serif;
+      font-size: 14px;
+      overscroll-behavior: none;
+    }
+
+    #app {
+      max-width: 430px;
+      margin: 0 auto;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg);
+    }
+
+    /* ---- HEADER ---- */
+    .header {
+      background: var(--surface);
+      padding: calc(16px + var(--safe-top)) 20px 14px;
+      border-bottom: 0.5px solid var(--border);
+      flex-shrink: 0;
+    }
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+    .logo {
+      font-size: 17px;
+      font-weight: 600;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .month-nav {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .nav-btn {
+      background: var(--surface2);
+      border: 0.5px solid var(--border);
+      color: var(--muted);
+      width: 26px; height: 26px;
+      border-radius: 7px;
+      cursor: pointer;
+      font-size: 14px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .nav-btn:active { opacity: 0.6; }
+
+    .profiles {
+      display: flex;
+      gap: 8px;
+    }
+    .profile-pill {
+      flex: 1;
+      padding: 9px 12px;
+      border-radius: 12px;
+      cursor: pointer;
+      border: 1.5px solid transparent;
+      transition: all 0.15s;
+      user-select: none;
+    }
+    .profile-pill:active { opacity: 0.7; }
+    .profile-pill.his { background: rgba(108,99,255,0.1); }
+    .profile-pill.hers { background: rgba(255,107,157,0.1); }
+    .profile-pill.combined { background: var(--surface2); flex: 1.3; text-align: center; }
+    .profile-pill.active-his { border-color: var(--accent); background: rgba(108,99,255,0.18); }
+    .profile-pill.active-hers { border-color: var(--accent2); background: rgba(255,107,157,0.18); }
+    .profile-pill.active-combined { border-color: var(--green); background: rgba(45,212,160,0.1); }
+    .pill-label { font-size: 10px; color: var(--muted); margin-bottom: 2px; text-transform: uppercase; letter-spacing: 0.06em; }
+    .pill-amount { font-size: 15px; font-weight: 600; }
+    .his .pill-amount { color: var(--accent); }
+    .hers .pill-amount { color: var(--accent2); }
+    .combined .pill-amount { color: var(--green); }
+
+    /* ---- TABS ---- */
+    .nav-tabs {
+      display: flex;
+      background: var(--surface);
+      border-bottom: 0.5px solid var(--border);
+      flex-shrink: 0;
+    }
+    .tab {
+      flex: 1;
+      padding: 12px 4px;
+      text-align: center;
+      font-size: 12px;
+      font-family: 'DM Sans', system-ui, sans-serif;
+      color: var(--muted);
+      cursor: pointer;
+      border: none;
+      background: none;
+      border-bottom: 2px solid transparent;
+      transition: all 0.15s;
+    }
+    .tab.active { color: var(--text); border-bottom-color: var(--accent); }
+
+    /* ---- SCROLLABLE CONTENT ---- */
+    .content {
+      flex: 1;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 16px 16px calc(16px + var(--safe-bottom));
+    }
+
+    /* ---- METRIC CARDS ---- */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .metric {
+      background: var(--surface);
+      border-radius: 14px;
+      padding: 13px 14px;
+      border: 0.5px solid var(--border);
+    }
+    .metric-label { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+    .metric-value { font-size: 20px; font-weight: 600; }
+    .metric-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+    /* ---- CHART CARDS ---- */
+    .chart-wrap {
+      background: var(--surface);
+      border-radius: 14px;
+      padding: 14px;
+      border: 0.5px solid var(--border);
+      margin-bottom: 14px;
+    }
+    .chart-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .chart-title { font-size: 13px; font-weight: 500; }
+    .legend { display: flex; gap: 12px; flex-wrap: wrap; }
+    .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted); }
+    .legend-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+
+    /* ---- CATEGORIES ---- */
+    .cat-list { display: flex; flex-direction: column; gap: 9px; margin-bottom: 14px; }
+    .cat-row {
+      background: var(--surface);
+      border-radius: 12px;
+      padding: 11px 14px;
+      border: 0.5px solid var(--border);
+    }
+    .cat-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .cat-name { font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 7px; }
+    .cat-amounts { font-size: 12px; color: var(--muted); }
+    .cat-spent { font-weight: 600; color: var(--text); }
+    .progress-bar { height: 5px; background: var(--surface2); border-radius: 3px; overflow: hidden; }
+    .progress-fill { height: 100%; border-radius: 3px; transition: width 0.4s ease; }
+
+    /* ---- BUDGET EDITOR ---- */
+    .budget-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 8px;
+    }
+    .budget-label { font-size: 11px; color: var(--muted); }
+    .budget-input {
+      background: var(--surface2);
+      border: 0.5px solid var(--border);
+      border-radius: 7px;
+      padding: 4px 8px;
+      color: var(--text);
+      font-size: 12px;
+      font-family: 'DM Sans', system-ui, sans-serif;
+      width: 80px;
+      text-align: right;
+    }
+
+    /* ---- GOALS ---- */
+    .goals-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+    .goal-card {
+      background: var(--surface);
+      border-radius: 14px;
+      padding: 13px 14px;
+      border: 0.5px solid var(--border);
+    }
+    .goal-top { display: flex; justify-content: space-between; margin-bottom: 3px; }
+    .goal-name { font-size: 13px; font-weight: 500; }
+    .goal-pct { font-size: 13px; font-weight: 600; }
+    .goal-sub { font-size: 11px; color: var(--muted); margin-bottom: 9px; }
+    .goal-bar { height: 7px; background: var(--surface2); border-radius: 4px; overflow: hidden; }
+    .goal-fill { height: 100%; border-radius: 4px; transition: width 0.4s ease; }
+    .goal-add-row { display: flex; gap: 8px; margin-top: 9px; }
+    .goal-add-input {
+      flex: 1;
+      background: var(--surface2);
+      border: 0.5px solid var(--border);
+      border-radius: 8px;
+      padding: 7px 10px;
+      color: var(--text);
+      font-size: 12px;
+      font-family: 'DM Sans', system-ui, sans-serif;
+    }
+    .goal-add-btn {
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 7px 12px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      font-family: 'DM Sans', system-ui, sans-serif;
+    }
+
+    /* ---- TRANSACTIONS ---- */
+    .tx-list { display: flex; flex-direction: column; gap: 1px; margin-bottom: 14px; }
+    .tx-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--surface);
+      padding: 11px 14px;
+      border-bottom: 0.5px solid var(--border);
+    }
+    .tx-row:first-child { border-radius: 12px 12px 0 0; }
+    .tx-row:last-child { border-radius: 0 0 12px 12px; border-bottom: none; }
+    .tx-row:only-child { border-radius: 12px; }
+    .tx-left { display: flex; flex-direction: column; gap: 2px; }
+    .tx-name { font-size: 13px; font-weight: 500; }
+    .tx-meta { font-size: 11px; color: var(--muted); }
+    .tx-right { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
+    .tx-amount { font-size: 14px; font-weight: 600; }
+    .tx-badge { font-size: 10px; padding: 2px 8px; border-radius: 5px; font-weight: 500; }
+    .badge-his { background: rgba(108,99,255,0.2); color: #9d97ff; }
+    .badge-hers { background: rgba(255,107,157,0.2); color: #ff9bc0; }
+    .badge-shared { background: rgba(45,212,160,0.15); color: #2dd4a0; }
+
+    /* ---- ADD BUTTON ---- */
+    .add-btn {
+      width: 100%;
+      padding: 14px;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 14px;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: 'DM Sans', system-ui, sans-serif;
+      cursor: pointer;
+      margin-bottom: 12px;
+      transition: opacity 0.15s;
+    }
+    .add-btn:active { opacity: 0.8; }
+    .add-btn.secondary {
+      background: var(--surface2);
+      color: var(--muted);
+      border: 0.5px solid var(--border);
+    }
+
+    /* ---- MODAL ---- */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.75);
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      z-index: 100;
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+    }
+    .modal {
+      background: var(--surface);
+      border-radius: 24px 24px 0 0;
+      padding: 24px 20px calc(24px + var(--safe-bottom));
+      width: 100%;
+      max-width: 430px;
+      border-top: 0.5px solid var(--border);
+      animation: slideUp 0.22s ease;
+    }
+    @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+    .modal-title { font-size: 17px; font-weight: 600; margin-bottom: 18px; }
+    .form-group { margin-bottom: 13px; }
+    .form-label { font-size: 12px; color: var(--muted); margin-bottom: 6px; display: block; text-transform: uppercase; letter-spacing: 0.05em; }
+    .form-input, .form-select {
+      width: 100%;
+      background: var(--surface2);
+      border: 0.5px solid var(--border);
+      border-radius: 10px;
+      padding: 11px 13px;
+      color: var(--text);
+      font-size: 14px;
+      font-family: 'DM Sans', system-ui, sans-serif;
+      outline: none;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+    .form-input:focus, .form-select:focus { border-color: var(--accent); }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .modal-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 18px; }
+    .btn-cancel {
+      background: var(--surface2);
+      color: var(--muted);
+      border: 0.5px solid var(--border);
+      border-radius: 12px;
+      padding: 13px;
+      font-size: 14px;
+      font-family: 'DM Sans', system-ui, sans-serif;
+      cursor: pointer;
+    }
+    .btn-save {
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      padding: 13px;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: 'DM Sans', system-ui, sans-serif;
+      cursor: pointer;
+    }
+
+    /* ---- UTILS ---- */
+    .hidden { display: none !important; }
+    .income-pos { color: var(--green); }
+    .income-neg { color: var(--red); }
+    .over { color: var(--red); }
+    .empty-state { text-align: center; color: var(--muted); padding: 32px 16px; font-size: 13px; }
+
+    /* ---- INSTALL BANNER ---- */
+    .install-banner {
+      background: linear-gradient(135deg, rgba(108,99,255,0.15), rgba(255,107,157,0.1));
+      border: 0.5px solid rgba(108,99,255,0.3);
+      border-radius: 12px;
+      padding: 12px 14px;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .install-banner-text { font-size: 12px; color: var(--muted); flex: 1; line-height: 1.5; }
+    .install-banner-text strong { color: var(--text); display: block; margin-bottom: 2px; }
+    .install-x { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 16px; padding: 4px; }
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <div class="header">
+    <div class="header-top">
+      <span class="logo">Couple Budget</span>
+      <div class="month-nav">
+        <button class="nav-btn" onclick="changeMonth(-1)">&#8249;</button>
+        <span id="monthLabel">—</span>
+        <button class="nav-btn" onclick="changeMonth(1)">&#8250;</button>
+      </div>
+    </div>
+    <div class="profiles">
+      <div class="profile-pill his" onclick="setView('his')">
+        <div class="pill-label">His</div>
+        <div class="pill-amount" id="hisTotal">€0</div>
+      </div>
+      <div class="profile-pill hers" onclick="setView('hers')">
+        <div class="pill-label">Hers</div>
+        <div class="pill-amount" id="hersTotal">€0</div>
+      </div>
+      <div class="profile-pill combined active-combined" onclick="setView('combined')">
+        <div class="pill-label">Combined</div>
+        <div class="pill-amount" id="combinedTotal">€0</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="nav-tabs">
+    <button class="tab active" onclick="switchTab('dashboard')">Dashboard</button>
+    <button class="tab" onclick="switchTab('categories')">Categories</button>
+    <button class="tab" onclick="switchTab('goals')">Goals</button>
+    <button class="tab" onclick="switchTab('transactions')">History</button>
+  </div>
+
+  <div class="content">
+
+    <!-- Install banner (shown on mobile non-PWA) -->
+    <div class="install-banner" id="installBanner">
+      <div style="font-size:22px;">📲</div>
+      <div class="install-banner-text">
+        <strong>Install on iPhone</strong>
+        Tap Share → Add to Home Screen in Safari
+      </div>
+      <button class="install-x" onclick="document.getElementById('installBanner').remove()">✕</button>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div id="tab-dashboard">
+      <div class="summary-grid">
+        <div class="metric">
+          <div class="metric-label">Income</div>
+          <div class="metric-value income-pos" id="dash-income">€0</div>
+          <div class="metric-sub">this month</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Spent</div>
+          <div class="metric-value" id="dash-spent">€0</div>
+          <div class="metric-sub" id="dash-budget-label">of €0 budget</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Remaining</div>
+          <div class="metric-value" id="dash-remaining">€0</div>
+          <div class="metric-sub">left to spend</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Savings rate</div>
+          <div class="metric-value" id="dash-rate">0%</div>
+          <div class="metric-sub">of income</div>
+        </div>
+      </div>
+
+      <div class="chart-wrap">
+        <div class="chart-header">
+          <span class="chart-title">Running balance</span>
+          <div class="legend">
+            <span class="legend-item"><span class="legend-dot" style="background:#6c63ff;"></span>His</span>
+            <span class="legend-item"><span class="legend-dot" style="background:#ff6b9d;"></span>Hers</span>
+          </div>
+        </div>
+        <div style="position:relative;height:160px;"><canvas id="lineChart"></canvas></div>
+      </div>
+
+      <div class="chart-wrap">
+        <div class="chart-header">
+          <span class="chart-title">By category</span>
+        </div>
+        <div style="position:relative;height:190px;"><canvas id="pieChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- CATEGORIES -->
+    <div id="tab-categories" class="hidden">
+      <div class="cat-list" id="catList"></div>
+    </div>
+
+    <!-- GOALS -->
+    <div id="tab-goals" class="hidden">
+      <div class="goals-list" id="goalsList"></div>
+      <button class="add-btn secondary" onclick="openGoalModal()">+ Add savings goal</button>
+    </div>
+
+    <!-- TRANSACTIONS -->
+    <div id="tab-transactions" class="hidden">
+      <div class="tx-list" id="txList"></div>
+    </div>
+
+    <button class="add-btn" id="addTxBtn" onclick="openModal()">+ Add transaction</button>
+  </div>
+</div>
+
+<!-- ADD TRANSACTION MODAL -->
+<div class="modal-overlay hidden" id="txModal">
+  <div class="modal">
+    <div class="modal-title">Add transaction</div>
+    <div class="form-group">
+      <label class="form-label">Description</label>
+      <input class="form-input" id="txDesc" placeholder="e.g. Lidl groceries" autocomplete="off" />
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Amount (€)</label>
+        <input class="form-input" id="txAmount" type="number" inputmode="decimal" placeholder="0.00" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Type</label>
+        <select class="form-select" id="txType">
+          <option value="expense">Expense</option>
+          <option value="income">Income</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Category</label>
+        <select class="form-select" id="txCat">
+          <option>Housing</option>
+          <option>Food & Groceries</option>
+          <option>Transport</option>
+          <option>Entertainment</option>
+          <option>Clothing</option>
+          <option>Subscriptions</option>
+          <option>Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Person</label>
+        <select class="form-select" id="txPerson">
+          <option value="his">His</option>
+          <option value="hers">Hers</option>
+          <option value="shared">Shared</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Recurring</label>
+      <select class="form-select" id="txRecurring">
+        <option value="no">One-time</option>
+        <option value="monthly">Monthly</option>
+        <option value="weekly">Weekly</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-save" onclick="saveTransaction()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD GOAL MODAL -->
+<div class="modal-overlay hidden" id="goalModal">
+  <div class="modal">
+    <div class="modal-title">New savings goal</div>
+    <div class="form-group">
+      <label class="form-label">Goal name</label>
+      <input class="form-input" id="goalName" placeholder="e.g. Summer holiday" autocomplete="off" />
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Target (€)</label>
+        <input class="form-input" id="goalTarget" type="number" inputmode="decimal" placeholder="2000" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Saved so far (€)</label>
+        <input class="form-input" id="goalSaved" type="number" inputmode="decimal" placeholder="0" />
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeGoalModal()">Cancel</button>
+      <button class="btn-save" onclick="saveGoal()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+// ─── CONSTANTS ───────────────────────────────────────────────────────────────
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const CAT_ICONS = {'Housing':'🏠','Food & Groceries':'🛒','Transport':'🚗','Entertainment':'🎬','Clothing':'👗','Subscriptions':'📱','Other':'💳','Income':'💰'};
+const CAT_COLORS = {'Housing':'#6c63ff','Food & Groceries':'#2dd4a0','Transport':'#4da6ff','Entertainment':'#f5a623','Clothing':'#ff6b9d','Subscriptions':'#a78bfa','Other':'#8b90a8'};
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+let state = loadState();
+let currentView = 'combined';
+let currentTab  = 'dashboard';
+let lineChart   = null;
+let pieChart    = null;
+
+function defaultState() {
+  const now = new Date();
+  return {
+    monthOffset: 0,
+    nextId: 20,
+    nextGoalId: 10,
+    catBudgets: {
+      'Housing': 900,
+      'Food & Groceries': 400,
+      'Transport': 200,
+      'Entertainment': 150,
+      'Clothing': 100,
+      'Subscriptions': 80,
+      'Other': 100
+    },
+    transactions: [
+      {id:1,desc:'Rent',amount:900,type:'expense',cat:'Housing',person:'shared',date:fmtDate(now,1),recurring:'monthly'},
+      {id:2,desc:'Salary',amount:2400,type:'income',cat:'Income',person:'his',date:fmtDate(now,1),recurring:'monthly'},
+      {id:3,desc:'Salary',amount:1900,type:'income',cat:'Income',person:'hers',date:fmtDate(now,1),recurring:'monthly'},
+      {id:4,desc:'Groceries',amount:87,type:'expense',cat:'Food & Groceries',person:'hers',date:fmtDate(now,5),recurring:'no'},
+      {id:5,desc:'Netflix',amount:15,type:'expense',cat:'Subscriptions',person:'shared',date:fmtDate(now,5),recurring:'monthly'},
+      {id:6,desc:'Fuel',amount:60,type:'expense',cat:'Transport',person:'his',date:fmtDate(now,8),recurring:'no'},
+      {id:7,desc:'Supermarket',amount:112,type:'expense',cat:'Food & Groceries',person:'his',date:fmtDate(now,10),recurring:'no'},
+      {id:8,desc:'Cinema',amount:28,type:'expense',cat:'Entertainment',person:'shared',date:fmtDate(now,12),recurring:'no'},
+      {id:9,desc:'Jacket',amount:79,type:'expense',cat:'Clothing',person:'hers',date:fmtDate(now,14),recurring:'no'},
+      {id:10,desc:'Spotify',amount:10,type:'expense',cat:'Subscriptions',person:'his',date:fmtDate(now,5),recurring:'monthly'},
+      {id:11,desc:'Bus pass',amount:40,type:'expense',cat:'Transport',person:'hers',date:fmtDate(now,3),recurring:'monthly'},
+    ],
+    goals: [
+      {id:1,name:'Summer holiday',target:3000,saved:840},
+      {id:2,name:'Emergency fund',target:5000,saved:2100},
+      {id:3,name:'New laptop',target:1200,saved:950},
+    ]
+  };
+}
+
+function fmtDate(base, day) {
+  const d = new Date(base.getFullYear(), base.getMonth(), day);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(day).padStart(2,'0');
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem('couplebudget_v1');
+    if (raw) return JSON.parse(raw);
+  } catch(e) {}
+  return defaultState();
+}
+
+function saveState() {
+  try { localStorage.setItem('couplebudget_v1', JSON.stringify(state)); } catch(e) {}
+}
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+function getMonthYear() {
+  const now = new Date();
+  const d = new Date(now.getFullYear(), now.getMonth() + state.monthOffset, 1);
+  return { month: d.getMonth(), year: d.getFullYear(), label: MONTHS[d.getMonth()] + ' ' + d.getFullYear() };
+}
+
+function filterTx(view) {
+  const {month, year} = getMonthYear();
+  return state.transactions.filter(t => {
+    const d = new Date(t.date);
+    if (d.getMonth() !== month || d.getFullYear() !== year) return false;
+    if (view === 'combined') return true;
+    if (view === 'his')  return t.person === 'his'  || t.person === 'shared';
+    if (view === 'hers') return t.person === 'hers' || t.person === 'shared';
+    return true;
+  });
+}
+
+function calcTotals(view) {
+  const txs = filterTx(view);
+  const income  = txs.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
+  const spent   = txs.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+  return { income, spent, remaining: income - spent };
+}
+
+function fmt(n) {
+  return '€' + Math.round(Math.abs(n)).toLocaleString('de-DE');
+}
+
+function totalBudget() {
+  return Object.values(state.catBudgets).reduce((s,v)=>s+v,0);
+}
+
+// ─── VIEW / TAB SWITCHING ────────────────────────────────────────────────────
+function setView(v) {
+  currentView = v;
+  document.querySelectorAll('.profile-pill').forEach(el => {
+    el.classList.remove('active-his','active-hers','active-combined');
+  });
+  const pills = document.querySelectorAll('.profile-pill');
+  if (v==='his')      pills[0].classList.add('active-his');
+  else if (v==='hers')pills[1].classList.add('active-hers');
+  else                pills[2].classList.add('active-combined');
+  render();
+}
+
+function changeMonth(d) {
+  state.monthOffset += d;
+  saveState();
+  document.getElementById('monthLabel').textContent = getMonthYear().label;
+  render();
+}
+
+function switchTab(tab) {
+  currentTab = tab;
+  ['dashboard','categories','goals','transactions'].forEach(t => {
+    document.getElementById('tab-'+t).classList.toggle('hidden', t !== tab);
+  });
+  document.querySelectorAll('.tab').forEach((el,i) => {
+    el.classList.toggle('active', ['dashboard','categories','goals','transactions'][i] === tab);
+  });
+  document.getElementById('addTxBtn').classList.toggle('hidden', tab === 'goals');
+  render();
+}
+
+// ─── RENDER ───────────────────────────────────────────────────────────────────
+function render() {
+  document.getElementById('monthLabel').textContent = getMonthYear().label;
+  renderProfiles();
+  if (currentTab === 'dashboard')     renderDashboard();
+  else if (currentTab === 'categories') renderCategories();
+  else if (currentTab === 'goals')    renderGoals();
+  else if (currentTab === 'transactions') renderTransactions();
+}
+
+function renderProfiles() {
+  document.getElementById('hisTotal').textContent      = fmt(calcTotals('his').spent);
+  document.getElementById('hersTotal').textContent     = fmt(calcTotals('hers').spent);
+  document.getElementById('combinedTotal').textContent = fmt(calcTotals('combined').spent);
+}
+
+function renderDashboard() {
+  const {income, spent, remaining} = calcTotals(currentView);
+  const rate = income > 0 ? Math.round((remaining / income) * 100) : 0;
+  document.getElementById('dash-income').textContent = fmt(income);
+  document.getElementById('dash-spent').textContent  = fmt(spent);
+  document.getElementById('dash-budget-label').textContent = 'of ' + fmt(totalBudget()) + ' budget';
+  const remEl = document.getElementById('dash-remaining');
+  remEl.textContent = (remaining < 0 ? '-' : '') + fmt(remaining);
+  remEl.className = 'metric-value ' + (remaining >= 0 ? 'income-pos' : 'over');
+  document.getElementById('dash-rate').textContent = rate + '%';
+  renderLineChart();
+  renderPieChart();
+}
+
+function renderLineChart() {
+  const {month, year} = getMonthYear();
+  const daysInMonth = new Date(year, month+1, 0).getDate();
+  const labels = Array.from({length: daysInMonth}, (_,i) => String(i+1));
+  const hisDay  = new Array(daysInMonth).fill(0);
+  const hersDay = new Array(daysInMonth).fill(0);
+
+  state.transactions.filter(t => t.type==='expense').forEach(t => {
+    const d = new Date(t.date);
+    if (d.getMonth()!==month || d.getFullYear()!==year) return;
+    const idx = d.getDate()-1;
+    if (t.person==='his'||t.person==='shared')  hisDay[idx]  += t.amount;
+    if (t.person==='hers'||t.person==='shared') hersDay[idx] += t.amount;
+  });
+
+  const hisRun  = hisDay.reduce((acc,v,i) => { acc.push((acc[i-1]||0)+v); return acc; }, []);
+  const hersRun = hersDay.reduce((acc,v,i) => { acc.push((acc[i-1]||0)+v); return acc; }, []);
+
+  if (lineChart) lineChart.destroy();
+  lineChart = new Chart(document.getElementById('lineChart').getContext('2d'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {label:'His', data:hisRun, borderColor:'#6c63ff', backgroundColor:'rgba(108,99,255,0.08)', borderWidth:2, pointRadius:0, tension:0.4, fill:true},
+        {label:'Hers',data:hersRun,borderColor:'#ff6b9d', backgroundColor:'rgba(255,107,157,0.08)',borderWidth:2, pointRadius:0, tension:0.4, fill:true},
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false} },
+      scales:{
+        x:{ grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'#8b90a8',font:{size:9},maxTicksLimit:8} },
+        y:{ grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'#8b90a8',font:{size:9},callback:v=>'€'+v} }
+      }
+    }
+  });
+}
+
+function renderPieChart() {
+  const txs = filterTx(currentView).filter(t=>t.type==='expense');
+  const catTotals = {};
+  txs.forEach(t => { catTotals[t.cat] = (catTotals[t.cat]||0)+t.amount; });
+  const labels = Object.keys(catTotals);
+  const data   = labels.map(l=>catTotals[l]);
+  const colors = labels.map(l=>CAT_COLORS[l]||'#8b90a8');
+
+  if (pieChart) pieChart.destroy();
+  pieChart = new Chart(document.getElementById('pieChart').getContext('2d'), {
+    type: 'doughnut',
+    data: { labels, datasets: [{data, backgroundColor:colors, borderWidth:0, hoverOffset:4}] },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ position:'right', labels:{ color:'#8b90a8', font:{size:11}, boxWidth:10, padding:8 } } }
+    }
+  });
+}
+
+function renderCategories() {
+  const txs = filterTx(currentView).filter(t=>t.type==='expense');
+  const catTotals = {};
+  txs.forEach(t => { catTotals[t.cat] = (catTotals[t.cat]||0)+t.amount; });
+
+  const html = Object.keys(state.catBudgets).map(cat => {
+    const spent  = catTotals[cat]||0;
+    const budget = state.catBudgets[cat];
+    const pct    = Math.min(100, Math.round((spent/budget)*100));
+    const over   = spent > budget;
+    const color  = over ? '#ff6b6b' : (CAT_COLORS[cat]||'#6c63ff');
+    return `<div class="cat-row">
+      <div class="cat-top">
+        <span class="cat-name">${CAT_ICONS[cat]||'💳'} ${cat}</span>
+        <span class="cat-amounts"><span class="cat-spent ${over?'over':''}">${fmt(spent)}</span> / ${fmt(budget)}</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${color};"></div></div>
+      <div class="budget-row">
+        <span class="budget-label">Monthly budget</span>
+        <input class="budget-input" type="number" value="${budget}" onchange="updateBudget('${cat}', this.value)" />
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('catList').innerHTML = html;
+}
+
+function updateBudget(cat, val) {
+  const v = parseFloat(val);
+  if (!isNaN(v) && v > 0) {
+    state.catBudgets[cat] = v;
+    saveState();
+    render();
+  }
+}
+
+function renderGoals() {
+  const goalColors = ['#6c63ff','#2dd4a0','#f5a623','#ff6b9d','#4da6ff'];
+  const html = state.goals.map((g,i) => {
+    const pct   = Math.min(100, Math.round((g.saved/g.target)*100));
+    const color = goalColors[i % goalColors.length];
+    return `<div class="goal-card">
+      <div class="goal-top">
+        <span class="goal-name">${g.name}</span>
+        <span class="goal-pct" style="color:${color}">${pct}%</span>
+      </div>
+      <div class="goal-sub">${fmt(g.saved)} saved of ${fmt(g.target)}</div>
+      <div class="goal-bar"><div class="goal-fill" style="width:${pct}%;background:${color};"></div></div>
+      <div class="goal-add-row">
+        <input class="goal-add-input" type="number" inputmode="decimal" placeholder="Add € amount" id="goalAdd_${g.id}" />
+        <button class="goal-add-btn" onclick="addToGoal(${g.id})">Add</button>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('goalsList').innerHTML = html || '<div class="empty-state">No goals yet. Add one below!</div>';
+}
+
+function addToGoal(id) {
+  const input = document.getElementById('goalAdd_'+id);
+  const val = parseFloat(input.value);
+  if (isNaN(val)||val<=0) return;
+  const g = state.goals.find(g=>g.id===id);
+  if (g) { g.saved = Math.min(g.target, g.saved+val); saveState(); render(); }
+}
+
+function renderTransactions() {
+  const txs = [...filterTx('combined')].reverse();
+  if (!txs.length) {
+    document.getElementById('txList').innerHTML = '<div class="empty-state">No transactions this month yet.</div>';
+    return;
+  }
+  const html = txs.map(t => {
+    const sign  = t.type==='income' ? '+' : '-';
+    const color = t.type==='income' ? '#2dd4a0' : '#f0f2f8';
+    const badgeCls   = t.person==='his'?'badge-his':t.person==='hers'?'badge-hers':'badge-shared';
+    const badgeLabel = t.person==='his'?'His':t.person==='hers'?'Hers':'Shared';
+    return `<div class="tx-row">
+      <div class="tx-left">
+        <span class="tx-name">${t.desc}</span>
+        <span class="tx-meta">${CAT_ICONS[t.cat]||''} ${t.cat} · ${t.date}${t.recurring!=='no'?' · 🔄':''}</span>
+      </div>
+      <div class="tx-right">
+        <span class="tx-amount" style="color:${color}">${sign}${fmt(t.amount)}</span>
+        <span class="tx-badge ${badgeCls}">${badgeLabel}</span>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('txList').innerHTML = html;
+}
+
+// ─── MODAL: TRANSACTION ───────────────────────────────────────────────────────
+function openModal()  { document.getElementById('txModal').classList.remove('hidden'); document.getElementById('txDesc').focus(); }
+function closeModal() { document.getElementById('txModal').classList.add('hidden'); }
+
+function saveTransaction() {
+  const desc      = document.getElementById('txDesc').value.trim();
+  const amount    = parseFloat(document.getElementById('txAmount').value);
+  const type      = document.getElementById('txType').value;
+  const cat       = document.getElementById('txCat').value;
+  const person    = document.getElementById('txPerson').value;
+  const recurring = document.getElementById('txRecurring').value;
+  if (!desc || isNaN(amount) || amount <= 0) return;
+
+  const now = new Date();
+  const {month, year} = getMonthYear();
+  const day = (month === now.getMonth() && year === now.getFullYear()) ? now.getDate() : 1;
+  const date = year+'-'+String(month+1).padStart(2,'0')+'-'+String(day).padStart(2,'0');
+
+  state.transactions.push({id: state.nextId++, desc, amount, type, cat, person, date, recurring});
+  saveState();
+  closeModal();
+  document.getElementById('txDesc').value   = '';
+  document.getElementById('txAmount').value = '';
+  render();
+}
+
+// ─── MODAL: GOAL ─────────────────────────────────────────────────────────────
+function openGoalModal()  { document.getElementById('goalModal').classList.remove('hidden'); document.getElementById('goalName').focus(); }
+function closeGoalModal() { document.getElementById('goalModal').classList.add('hidden'); }
+
+function saveGoal() {
+  const name   = document.getElementById('goalName').value.trim();
+  const target = parseFloat(document.getElementById('goalTarget').value)||0;
+  const saved  = parseFloat(document.getElementById('goalSaved').value)||0;
+  if (!name || !target) return;
+  state.goals.push({id: state.nextGoalId++, name, target, saved});
+  saveState();
+  closeGoalModal();
+  document.getElementById('goalName').value   = '';
+  document.getElementById('goalTarget').value = '';
+  document.getElementById('goalSaved').value  = '';
+  render();
+}
+
+// ─── INSTALL BANNER ───────────────────────────────────────────────────────────
+// Hide if already running as installed PWA
+if (window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches) {
+  const b = document.getElementById('installBanner');
+  if (b) b.remove();
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+render();
+</script>
+</body>
+</html>
